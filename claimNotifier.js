@@ -89,7 +89,7 @@ async function sendEmail(to, message) {
     fetch('https://api.sendgrid.com/v3/mail/send', {
       method: 'POST',
       headers: {
-        'Authorization': 'Bearer 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',
+        'Authorization': '',
         'Content-Type': 'application/json'
       },
       // body: '{"personalizations": [{"to": [{"email": "test@example.com"}]}],"from": {"email": "test@example.com"},"subject": "Sending with SendGrid is Fun","content": [{"type": "text/plain", "value": "and easy to do anywhere, even with cURL"}]}',
