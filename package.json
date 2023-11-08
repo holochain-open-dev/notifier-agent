@@ -5,7 +5,8 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "generate": "hc s clean && echo \"pass\" | hc s -f=18929 --piped generate dcan.happ -a dcan17182 network -b https://bootstrap.holo.host/ quic -p kitsune-proxy://f3gH2VMkJ4qvZJOXx0ccL_Zo5n-s_CnBjSzAsEHHDCA/kitsune-quic/h/137.184.142.208/p/5788/--",
+    "generate": "hc s clean && echo \"pass\" | hc s -f=18929 --piped generate whosin.happ -a dcan17182 network -b https://signal.holo.host/ webrtc",
+    "generate2": "hc s clean && echo \"pass\" | hc s -f=18929 --piped generate whosin.happ -a dcan17182 network --bootstrap https://bootstrap.holo.host webrtc wss://signal.holo.host",
     "start": "pm2 start --name launch-happ \"echo 'pass' | hc s -f=18929 --piped run 0 -p 17183\"",
     "restart": "pm2 start --name launch-happ \"echo 'pass' | hc s -f=18929 --piped run 0\"",
     "notifier": "pm2 start claimNotifier.js",
