@@ -90,7 +90,7 @@ async function sendEmail(to, message) {
     form.append('from', 'Excited User <' + config.mailgun.email_address + '>');
     form.append('to', config.mailgun.email_address);
     form.append('to', to);
-    form.append('subject', 'New message from "Whos In?"');
+    form.append('subject', 'New message');
     form.append('text', message);
 
     fetch('https://api.mailgun.net/v3/' + config.mailgun.domain + '/messages', {
