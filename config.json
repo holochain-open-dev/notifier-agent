@@ -7,5 +7,10 @@
   },
   "sendgrid": {
     "api_key": ""
+  },
+  "mailgun": {
+    "domain": "",
+    "email_address": "",
+    "auth_token": ""
   }
 }

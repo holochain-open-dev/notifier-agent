@@ -5,8 +5,7 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "generate": "hc s clean && echo \"pass\" | hc s -f=18929 --piped generate whosin.happ -a dcan17182 network -b https://signal.holo.host/ webrtc",
-    "generate2": "hc s clean && echo \"pass\" | hc s -f=18929 --piped generate whosin.happ -a dcan17182 network --bootstrap https://bootstrap.holo.host webrtc wss://signal.holo.host",
+    "generate": "hc s clean && echo \"pass\" | hc s -f=18929 --piped generate REPLACEME.happ -a dcan17182 network --bootstrap https://bootstrap.holo.host webrtc wss://signal.holo.host",
     "start": "pm2 start --name launch-happ \"echo 'pass' | hc s -f=18929 --piped run 0 -p 17183\"",
     "restart": "pm2 start --name launch-happ \"echo 'pass' | hc s -f=18929 --piped run 0\"",
     "notifier": "pm2 start claimNotifier.js",
