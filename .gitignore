@@ -2,7 +2,6 @@
 /lib
 output.log
 package-lock.json
-config2.json
 config.json
 graveyard.js
 .hc
