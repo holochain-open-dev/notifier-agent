@@ -1,0 +1,16 @@
+{
+  "twilio": {
+    "account_sid": "",
+    "auth_token": "",
+    "from_number_text": "",
+    "from_number_whatsapp": ""
+  },
+  "sendgrid": {
+    "api_key": ""
+  },
+  "mailgun": {
+    "domain": "",
+    "email_address": "",
+    "auth_token": ""
+  }
+}
