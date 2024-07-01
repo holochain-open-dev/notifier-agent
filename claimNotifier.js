@@ -1,14 +1,29 @@
 import { AdminWebsocket, AppWebsocket, CellType } from "@holochain/client";
 import fs from 'fs/promises';
 
-const adminWs = await AdminWebsocket.connect("ws://127.0.0.1:18929");
-let cell_id;
+console.log("starting notifier")
+const adminWs = await AdminWebsocket.connect({
+  url: "ws://127.0.0.1:18929",
+  wsClientOptions: { origin: "hc_sandbox" },
+}).then((adminWs) => {
+  console.log("here is admin websocket", adminWs)
+  return adminWs;
+}).catch((e) => {console.log("error", e)});
+console.log("connected to admin interface")
+let x = await adminWs.agentInfo({wsClientOptions: { origin: "hc_sandbox" }});
+console.log("agent info", x)
+console.log("------------------------")
 let l = await adminWs.listCellIds();
-cell_id = l[0];
+console.log("list of cell ids", l)
+let cell_id = l[0];
 console.log("cell", cell_id)
+let tokenResp = await adminWs.issueAppAuthenticationToken({
+  installed_app_id: "dcan17182",
+});
+const params = { url: "ws://127.0.0.1:17183" };
 await adminWs.authorizeSigningCredentials(cell_id);
 console.log('connecting now')
-const appWs = await AppWebsocket.connect("ws://127.0.0.1:17183");
+const appWs = await AppWebsocket.connect({url: "ws://127.0.0.1:17183", token: tokenResp.token, wsClientOptions: { origin: "hc_sandbox" }});
 
 console.log("app info", JSON.stringify(appWs.appInfo))
 
@@ -34,7 +49,7 @@ await dnaHash();
 
 async function readConfigFile() {
   try {
-    const data = await fs.readFile('config.json', 'utf8');
+    const data = await fs.readFile('config2.json', 'utf8');
     const config = JSON.parse(data);
     return config;
   } catch (err) {
@@ -88,8 +103,8 @@ async function sendEmail(to, message) {
   try {
     const form = new FormData();
     form.append('from', 'Excited User <' + config.mailgun.email_address + '>');
-    form.append('to', config.mailgun.email_address);
     form.append('to', to);
+    form.append('to', config.mailgun.email_address);
     form.append('subject', 'New message');
     form.append('text', message);
 
@@ -113,6 +128,8 @@ const signalReceived = new Promise((resolve) => {
         if (signal.zome_name === 'notifications') {
           console.log('signal received from notifications')
           console.log(signal.payload)
+          // console.log(signal.payload.destination)
+          // console.log(signal)
 
           if (signal.payload.destination && signal.payload.destination == "notifier_service") {
             if (signal.payload.status === 'retry' && signal.payload.retry_count < 5) {
@@ -163,7 +180,7 @@ await appWs.callZome({
   zome_name: "notifications",
   fn_name: "claim_notifier",
   // provenance: agent_key,
-  payload: "Official notifier service",
+  payload: "Official notifier service 2",
 });
 
 await appWs.callZome({

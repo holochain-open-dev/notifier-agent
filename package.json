@@ -5,7 +5,9 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "generate": "hc s clean && echo \"pass\" | hc s -f=18929 --piped generate REPLACEME.happ -a dcan17182 network --bootstrap https://bootstrap.holo.host webrtc wss://signal.holo.host",
+    "generate": "hc s clean && echo \"pass\" | hc s -f=18929 --piped generate -s adf3fe1e-1581-41f6-886c-f6e93a973069 whosin.happ -a dcan17182 network --bootstrap https://bootstrap.holo.host/ webrtc wss://signal-2.infra.holochain.org",
+    "generate1": "hc s clean && echo \"pass\" | hc s -f=18929 --piped generate whosin.happ -a dcan17182 network -b https://signal.holo.host/ webrtc",
+    "generate2": "hc s clean && echo \"pass\" | hc s -f=18929 --piped generate whosin.happ -a dcan17182 network --bootstrap http://127.0.0.1:46263 webrtc ws://127.0.0.1:$46262",
     "start": "pm2 start --name launch-happ \"echo 'pass' | hc s -f=18929 --piped run 0 -p 17183\"",
     "restart": "pm2 start --name launch-happ \"echo 'pass' | hc s -f=18929 --piped run 0\"",
     "notifier": "pm2 start claimNotifier.js",
@@ -17,7 +19,7 @@
   },
   "dependencies": {
     "pm2": "^5.3.0",
-    "@holochain/client": "^0.12.2"
+    "@holochain/client": "^0.18.0-dev.0"
   },
   "devDependencies": {
     "concurrently": "^6.2.1",
