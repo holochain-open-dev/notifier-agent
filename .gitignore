@@ -1,0 +1,10 @@
+/node_modules
+/lib
+output.log
+package-lock.json
+config2.json
+config.json
+graveyard.js
+.hc
+.hc_live_0
+*.happ
