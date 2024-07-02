@@ -1,5 +1,23 @@
 import { AdminWebsocket, AppWebsocket, CellType } from "@holochain/client";
 import fs from 'fs/promises';
+import { send } from "vite";
+import { scheduleJob } from "node-schedule";
+// import { list } from "pm2";
+
+// ==============SCHEDULING================
+async function cronJobNotify(agent_pubKey, message) {
+  console.log('cron job notify')
+  console.log('agent_pubKey', agent_pubKey)
+  let contacts = await getContacts(agent_pubKey);
+  console.log('contacts', contacts)
+  let contact = contacts[0]
+  console.log('found contact', contact)
+  let hackMessage = message.replace("Coordination activated", "Happening now")
+  sendText(contact.text_number, hackMessage);
+  sendEmail(contact.email_address, hackMessage);
+  console.log('sending message to', agent_pubKey, contact)
+}
+// ==============SCHEDULING ENDS================
 
 console.log("starting notifier")
 const adminWs = await AdminWebsocket.connect({
@@ -18,7 +36,7 @@ console.log("list of cell ids", l)
 let cell_id = l[0];
 console.log("cell", cell_id)
 let tokenResp = await adminWs.issueAppAuthenticationToken({
-  installed_app_id: "dcan17182",
+  installed_app_id: "myApp1234",
 });
 const params = { url: "ws://127.0.0.1:17183" };
 await adminWs.authorizeSigningCredentials(cell_id);
@@ -49,7 +67,7 @@ await dnaHash();
 
 async function readConfigFile() {
   try {
-    const data = await fs.readFile('config2.json', 'utf8');
+    const data = await fs.readFile('config.json', 'utf8');
     const config = JSON.parse(data);
     return config;
   } catch (err) {
@@ -81,12 +99,13 @@ async function sendText(to, message) {
 }
 
 async function sendWhatsappMessage(to, message) {
+  console.log('sending whatsapp message')
   console.log(to, message, config.twilio.account_sid, config.twilio.auth_token, config.twilio.from_number_whatsapp)
   try {
     fetch('https://api.twilio.com/2010-04-01/Accounts/' + config.twilio.account_sid + '/Messages.json', {
       method: 'POST',
       headers: {
-        'Authorization': 'Basic ' + btoa(config.twilio.account_sid + ':' + config.twilio.auth_token),
+        'Authorization': 'Basic ' + btoa(config.twilio.account_sid + ':' + config.twilio.whatsapp_auth_token),
       },
       body: new URLSearchParams({
         'To':'whatsapp:+' + to,
@@ -121,6 +140,21 @@ async function sendEmail(to, message) {
   }
 }
 
+async function getContacts(key) {
+  try {
+    let contacts = await appWs.callZome({
+      cell_id,
+      zome_name: "notifications",
+      fn_name: "get_contacts",
+      payload: [key],
+    });
+    console.log("contacts", contacts)
+    return contacts
+  } catch(e) {
+    console.log("couldn't get contacts", e)
+  }
+}
+
 let signalCb;
 const signalReceived = new Promise((resolve) => {
   signalCb = (signal) => {
@@ -132,7 +166,7 @@ const signalReceived = new Promise((resolve) => {
           // console.log(signal)
 
           if (signal.payload.destination && signal.payload.destination == "notifier_service") {
-            if (signal.payload.status === 'retry' && signal.payload.retry_count < 5) {
+            if (signal.payload.status === 'retry' && signal.payload.retry_count < 8) {
               console.log('about to retry')
               let new_payload = signal.payload;
               new_payload.retry_count = new_payload.retry_count + 1
@@ -146,21 +180,47 @@ const signalReceived = new Promise((resolve) => {
                 });
               }, 10000);
             } else {
-              console.log('sending text')
-              console.log(signal.payload)
+              console.log("signal.payload")
               let textMessage = signal.payload.message
               for (let i = 0; i < signal.payload.contacts.length; i++) {
                 let contact = signal.payload.contacts[i]
-                if (contact.text_number.length > 0) {
-                  sendText(contact.text_number, textMessage)
-                }
-                if (contact.email.length > 0) {
-                  sendEmail(contact.email, textMessage)
-                }
-                if (contact.whatsapp_number.length > 0) {
-                  sendWhatsappMessage(contact.whatsapp_number, textMessage)
+
+                if (signal.payload.delay_until) {
+                  // If delay, schedule job
+                  console.log('delaying message')
+                  try {
+                    console.log("scheduling job")
+                    // let tenSecondsLater = new Date(new Date().getTime() + 10000); // 10000 milliseconds = 10 seconds
+                    let date = new Date(signal.payload.delay_until / 1000);
+                    console.log("delayed until" + date.getFullYear() + "-" + date.getMonth() + "-" + date.getDate() + " " + date.getHours() + ":" + date.getMinutes() + ":" + date.getSeconds())
+                    scheduleJob(date, function() {
+                      console.log('running job')
+                      cronJobNotify(signal.payload.contacts[i].agent_pub_key, signal.payload.message);
+                    }); 
+                  } catch (error) {
+                    console.error('Error scheduling cron job:', error);
+                  }
+                } else {
+                  // If no delay, send message immediately
+                  try {
+                    if (contact.text_number.length > 0) {
+                      console.log('sending text')
+                      sendText(contact.text_number, textMessage)
+                    }
+                    if (contact.email.length > 0) {
+                      console.log('sending email')
+                      sendEmail(contact.email, textMessage)
+                    }
+                    if (contact.whatsapp_number.length > 0) {
+                      console.log('sending whatsapp message')
+                      sendWhatsappMessage(contact.whatsapp_number, textMessage)
+                    }
+                  } catch(e) {
+                    console.log('error sending message', e)
+                  }
                 }
               }
+              
             }
           }
         }
@@ -173,28 +233,37 @@ const signalReceived = new Promise((resolve) => {
 });
 appWs.on("signal", signalCb);
 
-sendEmail('test', 'test email')
-
 await appWs.callZome({
   cell_id,
   zome_name: "notifications",
   fn_name: "claim_notifier",
   // provenance: agent_key,
-  payload: "Official notifier service 2",
+  payload: "Official notifier service 3",
 });
 
-await appWs.callZome({
+const notifiers = await appWs.callZome({
   cell_id,
   zome_name: "notifications",
-  fn_name: "create_twilio_credentials",
-  payload: {
-    account_sid: config.twilio.account_sid,
-    auth_token: config.twilio.auth_token,
-    // from_number: config.twilio.from_number_text,
-
-    from_number_text: config.twilio.from_number_text,
-    from_number_whatsapp: config.twilio.from_number_whatsapp
-  },
+  fn_name: "list_notifiers",
+  payload: null,
 });
-await signalReceived;
 
+let am_i_in_notifiers = notifiers.find(n => JSON.stringify(n.agent) == JSON.stringify(appWs.myPubKey));
+
+console.log("notifiers", am_i_in_notifiers)
+
+// if (!am_i_in_notifiers) {
+  await appWs.callZome({
+    cell_id,
+    zome_name: "notifications",
+    fn_name: "create_twilio_credentials",
+    payload: {
+      account_sid: config.twilio.account_sid,
+      auth_token: config.twilio.auth_token,      
+      from_number_text: config.twilio.from_number_text,
+      from_number_whatsapp: config.twilio.from_number_whatsapp
+    },
+  });
+// }
+
+await signalReceived;
